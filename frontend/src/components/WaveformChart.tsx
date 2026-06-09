@@ -136,7 +136,7 @@ export const WaveformChart: React.FC = () => {
     state.setBrainState(brainState);
     state.setCorrelationData(correlation);
     if (state.isRecording) {
-      state.addRecordingFrame(eeg, bands, brainState);
+      state.addRecordingFrame(eeg, bands, brainState, correlation);
     }
     setLoading(false);
   };

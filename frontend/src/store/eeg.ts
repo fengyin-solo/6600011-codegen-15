@@ -67,7 +67,7 @@ interface EEGState {
   setCorrelationData: (c: CorrelationData | null) => void;
   startRecording: () => void;
   stopRecording: (name: string) => void;
-  addRecordingFrame: (eeg: EEGData, bands: BandPower, brainState: BrainState) => void;
+  addRecordingFrame: (eeg: EEGData, bands: BandPower, brainState: BrainState, correlation: CorrelationData) => void;
   deleteRecording: (id: string) => void;
   enterPlaybackMode: (recording: Recording) => void;
   exitPlaybackMode: () => void;
@@ -144,11 +144,11 @@ export const useEEGStore = create<EEGState>((set, get) => ({
       recordings: userRecordings,
     });
   },
-  addRecordingFrame: (eeg, bands, brainState) => {
+  addRecordingFrame: (eeg, bands, brainState, correlation) => {
     const { isRecording, recordingStartTime, currentRecordingFrames } = get();
     if (!isRecording) return;
     const relativeTime = (Date.now() - recordingStartTime) / 1000;
-    const frame: RecordingFrame = { relativeTime, eeg, bands, brainState };
+    const frame: RecordingFrame = { relativeTime, eeg, bands, brainState, correlation };
     set({ currentRecordingFrames: [...currentRecordingFrames, frame] });
   },
   deleteRecording: (id) => {
@@ -175,6 +175,7 @@ export const useEEGStore = create<EEGState>((set, get) => ({
       eegData: recording.frames[0].eeg,
       bandPower: recording.frames[0].bands,
       brainState: recording.frames[0].brainState,
+      correlationData: recording.frames[0].correlation || null,
     });
   },
   exitPlaybackMode: () => {
@@ -210,6 +211,7 @@ export const useEEGStore = create<EEGState>((set, get) => ({
       eegData: frame.eeg,
       bandPower: frame.bands,
       brainState: frame.brainState,
+      correlationData: frame.correlation || null,
     });
   },
   togglePlayback: () => {

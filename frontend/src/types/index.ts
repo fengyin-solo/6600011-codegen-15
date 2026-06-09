@@ -25,6 +25,7 @@ export interface RecordingFrame {
   eeg: EEGData;
   bands: BandPower;
   brainState: BrainState;
+  correlation: CorrelationData;
 }
 
 export interface Recording {
