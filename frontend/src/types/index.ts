@@ -35,7 +35,17 @@ export interface Recording {
   endTime: number;
   duration: number;
   frames: RecordingFrame[];
+  userId: string;
 }
+
+export interface UserProfile {
+  id: string;
+  name: string;
+  avatar: string;
+  createdAt: number;
+}
+
+export const DEFAULT_AVATARS = ['🧑', '👩', '👨', '🧒', '👧', '👦', '🧓', '👴', '👵', '🧔'];
 
 export interface PlaybackState {
   isPlaying: boolean;

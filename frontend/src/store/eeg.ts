@@ -1,22 +1,49 @@
 import { create } from 'zustand';
 import { EEGData, BandPower, BrainState, CorrelationData, Recording, RecordingFrame, PlaybackState } from '../types';
+import { useUserStore } from './user';
 
-const STORAGE_KEY = 'eeg_recordings';
+const ALL_RECORDINGS_KEY = 'eeg_all_recordings';
 
-const loadRecordings = (): Recording[] => {
+const loadAllRecordings = (): Recording[] => {
   try {
-    const stored = localStorage.getItem(STORAGE_KEY);
+    const stored = localStorage.getItem(ALL_RECORDINGS_KEY);
     return stored ? JSON.parse(stored) : [];
   } catch {
     return [];
   }
 };
 
-const saveRecordings = (recordings: Recording[]) => {
+const saveAllRecordings = (recordings: Recording[]) => {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(recordings));
+    localStorage.setItem(ALL_RECORDINGS_KEY, JSON.stringify(recordings));
   } catch {}
 };
+
+const loadUserRecordings = (userId: string): Recording[] => {
+  const all = loadAllRecordings();
+  return all.filter(r => r.userId === userId);
+};
+
+const migrateOldRecordings = () => {
+  const oldKey = 'eeg_recordings';
+  try {
+    const old = localStorage.getItem(oldKey);
+    if (!old) return;
+    const oldRecordings: Recording[] = JSON.parse(old);
+    if (oldRecordings.length === 0) return;
+    const all = loadAllRecordings();
+    const existingIds = new Set(all.map(r => r.id));
+    const migrated = oldRecordings
+      .filter(r => !existingIds.has(r.id))
+      .map(r => ({ ...r, userId: r.userId || 'user_default' }));
+    if (migrated.length > 0) {
+      saveAllRecordings([...all, ...migrated]);
+    }
+    localStorage.removeItem(oldKey);
+  } catch {}
+};
+
+migrateOldRecordings();
 
 interface EEGState {
   eegData: EEGData | null;
@@ -47,7 +74,12 @@ interface EEGState {
   setPlaybackTime: (time: number) => void;
   togglePlayback: () => void;
   setPlaybackPlaying: (playing: boolean) => void;
+  refreshUserRecordings: () => void;
 }
+
+const getCurrentUserId = (): string => {
+  return useUserStore.getState().currentUserId;
+};
 
 export const useEEGStore = create<EEGState>((set, get) => ({
   eegData: null,
@@ -59,7 +91,7 @@ export const useEEGStore = create<EEGState>((set, get) => ({
   isRecording: false,
   recordingStartTime: 0,
   currentRecordingFrames: [],
-  recordings: loadRecordings(),
+  recordings: loadUserRecordings(getCurrentUserId()),
   playbackMode: false,
   activeRecording: null,
   playbackState: {
@@ -99,14 +131,17 @@ export const useEEGStore = create<EEGState>((set, get) => ({
       endTime,
       duration,
       frames: currentRecordingFrames,
+      userId: getCurrentUserId(),
     };
-    const recordings = [...get().recordings, newRecording];
-    saveRecordings(recordings);
+    const allRecordings = loadAllRecordings();
+    allRecordings.push(newRecording);
+    saveAllRecordings(allRecordings);
+    const userRecordings = [...get().recordings, newRecording];
     set({
       isRecording: false,
       recordingStartTime: 0,
       currentRecordingFrames: [],
-      recordings,
+      recordings: userRecordings,
     });
   },
   addRecordingFrame: (eeg, bands, brainState) => {
@@ -117,8 +152,9 @@ export const useEEGStore = create<EEGState>((set, get) => ({
     set({ currentRecordingFrames: [...currentRecordingFrames, frame] });
   },
   deleteRecording: (id) => {
+    const allRecordings = loadAllRecordings().filter(r => r.id !== id);
+    saveAllRecordings(allRecordings);
     const recordings = get().recordings.filter(r => r.id !== id);
-    saveRecordings(recordings);
     const { activeRecording } = get();
     if (activeRecording?.id === id) {
       set({ recordings, playbackMode: false, activeRecording: null });
@@ -190,6 +226,20 @@ export const useEEGStore = create<EEGState>((set, get) => ({
       playbackState: {
         ...get().playbackState,
         isPlaying: playing,
+      },
+    });
+  },
+  refreshUserRecordings: () => {
+    const userId = getCurrentUserId();
+    const recordings = loadUserRecordings(userId);
+    set({
+      recordings,
+      playbackMode: false,
+      activeRecording: null,
+      playbackState: {
+        isPlaying: false,
+        currentTime: 0,
+        currentFrame: null,
       },
     });
   },

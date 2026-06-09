@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useEEGStore } from '../store/eeg';
+import { useUserStore } from '../store/user';
 import { Recording } from '../types';
 
 const CHANNEL_NAMES: Record<string, string> = {
@@ -42,6 +43,7 @@ export const RecordingPanel: React.FC = () => {
     selectedChannel,
   } = useEEGStore();
 
+  const currentUser = useUserStore(s => s.getCurrentUser());
   const [recordingName, setRecordingName] = useState('');
   const [showNameDialog, setShowNameDialog] = useState(false);
   const [elapsedTime, setElapsedTime] = useState(0);
@@ -136,6 +138,11 @@ export const RecordingPanel: React.FC = () => {
       <h3 style={{ margin: '0 0 16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
         <span style={{ fontSize: '20px' }}>⏺</span>
         录制与回放
+        {currentUser && (
+          <span style={{ fontSize: '11px', color: '#999', fontWeight: 400, marginLeft: 'auto' }}>
+            {currentUser.avatar} {currentUser.name}
+          </span>
+        )}
       </h3>
 
       {!playbackMode && (
