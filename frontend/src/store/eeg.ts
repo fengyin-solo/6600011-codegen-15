@@ -233,6 +233,14 @@ export const useEEGStore = create<EEGState>((set, get) => ({
     const userId = getCurrentUserId();
     const recordings = loadUserRecordings(userId);
     set({
+      eegData: null,
+      bandPower: null,
+      brainState: null,
+      correlationData: null,
+      isStreaming: false,
+      isRecording: false,
+      recordingStartTime: 0,
+      currentRecordingFrames: [],
       recordings,
       playbackMode: false,
       activeRecording: null,
